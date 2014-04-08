@@ -38,25 +38,32 @@ class Tile
   end
 
   def neighbors
-    poss_diff = [-1, 0, 1].product([-1, 0, 1])
-    poss_diff.delete( [0,0] )
+    poss_diff = [
+                   [-1, -1],
+                   [-1,  0],
+                   [-1,  1],
+                   [0,  -1],
+                   [0,   1],
+                   [1,  -1],
+                   [1,   0],
+                   [1,   1]    ]
 
     neighboring_positions = []
     poss_diff.each do |difference|
-      neighboring_positions <<  [ position.first + difference.first,
-                                  position.last  + difference.last   ]
+      neighboring_positions <<  [ self.position.first + difference.first,
+                                  self.position.last  + difference.last   ]
     end #each
 
-    neighboring_positions = neighboring_positions.select do |position|
-      x,y = position
+    neighboring_positions = neighboring_positions.select do |pos|
+      x,y = pos
       ( x <= 8 && x >= 0 && y <= 8 && y >= 0 )
     end #select
 
-    neighboring_positions.map do |position|
+    neighbors = neighboring_positions.map do |pos|
       # p position
-      pos_x, pos_y = position
+      pos_x, pos_y = pos
       brd = self.board
-      grid = brd.grid[ pos_x ][ pos_y ]
+      tile = brd.grid[ pos_x ][ pos_y ]
     end # returns Tiles, not positions
 
   end #neighbors
@@ -110,6 +117,9 @@ class Board
   end #init
 
   def display
+    top_row = (0..self.grid.length-1).to_a.join
+    puts "  #{top_row}"
+
     self.grid.each_with_index do |line, index|
       print "#{index} "
       line.each do |tile|
@@ -122,15 +132,17 @@ class Board
   def reveal_tile(pos_x, pos_y)
     # pos_x, pos_y = *position
     curr_tile = self.grid[pos_x][pos_y]
-    curr_tile.reveal
+    if curr_tile.revealed
+      return curr_tile
+    elsif curr_tile.flagged
+      return curr_tile
+    else
+      curr_tile.reveal
 
-    # THIS METHOD IS CALLING ITSELF TOO MUCH WITH REVEAL_NEIGHBORS (L 157)
-    #
-    # ......
-    if curr_tile.revealed   #current_state == "_" || curr_tile.current_state.is_a?(Integer)
       neighbors = curr_tile.neighbors
-      reveal_neighbors( neighbors ) if curr_tile.neighbor_bomb_count == 0
+      reveal_neighbors( neighbors ) if ( !curr_tile.bombed && curr_tile.neighbor_bomb_count == 0 )
     end
+    curr_tile
   end #reveal_tile
 
   def flag_tile(pos_x, pos_y)
@@ -206,9 +218,8 @@ class MineSweeper
       display_board
       # have user pick a tile
       tile_str = user_pick_tile
-      p tile_str
 
-      handle_move (tile_str)
+      curr_tile = handle_move( tile_str )
 
       # if bomb blow up game over
       if curr_tile.current_state == "X"
@@ -218,14 +229,11 @@ class MineSweeper
       elsif curr_tile.current_state == "F" && curr_tile.bombed
         bombs_left -= 1
       elsif curr_tile.current_state == "U" && !curr_tile.bombed
-        bombs_left -= 1
-      elsif bombs_left == 0
-        puts "You win!!"
-        return
+        bombs_left += 1
       end
-
     end
-    # show win message
+
+    puts "You win!!! Congratulations!"
   end #run
 
   def handle_move( move_arr )
@@ -233,16 +241,17 @@ class MineSweeper
     pos_x = move_arr[1].to_i
     pos_y = move_arr[2].to_i
 
+    # if self.board.grid[ pos_x, pos_y ].revealed
+    #   self.board.grid
     if move_type == "F"
       curr_tile = self.board.flag_tile( pos_x, pos_y )
     elsif move_type == "U"
-      pos_x, pos_y = parse_coords( tile_str[0...-1] )
       curr_tile = self.board.un_flag_tile( pos_x, pos_y )
     elsif move_type == "E"
       curr_tile = self.board.reveal_tile( pos_x, pos_y )
     elsif move_type == "S"
       saved_game = self.to_yaml
-      File.open("minesweeper.yaml", 'w') { saved_game }
+      f = File.open("minesweeper.yaml", 'w') { saved_game }
     else
       raise "Unknown command; please input E, F, U, or S before coordinates."
     end
@@ -250,7 +259,7 @@ class MineSweeper
 
 
   def user_pick_tile
-    puts "What tile would you like to choose? (Format: x, y [,F for FLAG] )"
+    puts "What tile would you like to choose? (Format: [MOVE_TYPE],x,y )"
     tile_str = gets.chomp.split(",")
   end #pick_tile
 
