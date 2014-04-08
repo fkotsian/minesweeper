@@ -1,7 +1,7 @@
 minesweeper.rb
 ===========================
 By:       Frank Kotsianas and Andrew Chen | Updated:  Frank Kotsianas | On:       04.07.14
----------------------------
+
 
 Implements Minesweeper game, handling flagging, bombing, displaying, and winning within a command-line interface.
 
