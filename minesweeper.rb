@@ -26,6 +26,11 @@ class Tile
     # self.current_state = self.underlying_state
   end #reveal
 
+  def flag
+    self.flagged = true
+    self.current_state
+  end
+
   def neighbors
     poss_diff = [-1, 0, 1].product([-1, 0, 1])
     poss_diff.delete( [0,0] )
@@ -114,6 +119,12 @@ class Board
     curr_tile.reveal
   end #reveal_tile
 
+  def flat_tile(pos_x, pos_y)
+    # pos_x, pos_y = *position
+    curr_tile = self.grid[pos_x][pos_y]
+    curr_tile.flag
+  end #reveal_tile
+
   def create_tiles
     self.grid.each_with_index do |line, idx1|
       line.each_with_index do |tile, idx2|
@@ -151,24 +162,28 @@ class MineSweeper
 
   def run
     # while no win
+    bombs_left = 10
+
     10.times do
       display_board
       # have user pick a tile
       tile_str = user_pick_tile
       if tile_str.last == "F"
-        self.board.flag_tile
+        pos_x, pos_y = parse_coords( tile_str[0...-1] )
+        curr_tile = self.board.flag_tile( pos_x, pos_y )
+      else
+        pos_x, pos_y = parse_coords( tile_str[0..-1] )
+        curr_tile = self.board.reveal_tile( pos_x, pos_y )
+      end
 
-      tile_coords
-      pos_x, pos_y = tile_coords
-
-      curr_tile = self.board.reveal_tile(pos_x, pos_y)
       # if bomb blow up game over
       if curr_tile == "X"
         puts "YOU LOSE"
         display_board
         return false
+      elsif curr_tile == "F"
+        num_bombs -= 1
       end
-      # change that tile to Flag or underlying value
 
     end
     # show win message
@@ -180,11 +195,8 @@ class MineSweeper
   end #pick_tile
 
   def parse_coords( coords )
-    coords.split(",").map(&to_i)
+    pos_x, pos_y = coords.split(",").map(&to_i)
   end
-
-  def
-
 
 
 end #Minesweeper
