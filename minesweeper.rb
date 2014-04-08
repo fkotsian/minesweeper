@@ -77,13 +77,13 @@ class Tile
     elsif revealed == true && self.neighbor_bomb_count == 0
       return "_"
     elsif revealed == true
-      self.neighbor_bomb_count == 0
+      self.neighbor_bomb_count
     elsif self.revealed == false && flagged == false
       return "*"
     elsif self.revealed == false && flagged == true
       return "F"
     else
-      return self.neighbor_bomb_count
+      raise "State unknown to game"
     end #if
   end #current_state
 
@@ -122,6 +122,11 @@ class Board
     # pos_x, pos_y = *position
     curr_tile = self.grid[pos_x][pos_y]
     curr_tile.reveal
+    if curr_tile.current_state == "_"
+      neighbors = curr_tile.neighbors
+      reveal_neighbors( neighbors ) if check_for_chain( neighbors )
+    end
+    curr_tile
   end #reveal_tile
 
   def flag_tile(pos_x, pos_y)
@@ -135,6 +140,22 @@ class Board
     curr_tile = self.grid[pos_x][pos_y]
     curr_tile.unflag
   end #un_flag_tile
+
+  def check_for_chain( neighbors )
+    neighbors.each do |neighbor|
+      if neighbor.has_bomb
+        return false
+      end
+      true
+    end
+  end
+
+  def reveal_neighbors( neighbors )
+    neighbors.each do |neighbor|
+      reveal_tile( *neighbor.position )
+    end
+  end
+
 
   def create_tiles
     self.grid.each_with_index do |line, idx1|
