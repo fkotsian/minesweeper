@@ -221,8 +221,9 @@ class MineSweeper
 
       curr_tile = handle_move( tile_str )
 
-      # if bomb blow up game over
-      if curr_tile.current_state == "X"
+      if curr_tile == "S"
+        puts "Won't quit on save: Use ctrl+c to escape, or continue playing."
+      elsif curr_tile.current_state == "X"
         puts "YOU LOSE"
         display_board
         return
@@ -231,6 +232,7 @@ class MineSweeper
       elsif curr_tile.current_state == "U" && !curr_tile.bombed
         bombs_left += 1
       end
+      puts
     end
 
     puts "You win!!! Congratulations!"
@@ -251,7 +253,11 @@ class MineSweeper
       curr_tile = self.board.reveal_tile( pos_x, pos_y )
     elsif move_type == "S"
       saved_game = self.to_yaml
-      f = File.open("minesweeper.yaml", 'w') { saved_game }
+      puts "Enter filename to save game as (or ENTER for default): "
+      filename = gets.chomp || "minesweeper.yaml"
+      f = File.write( filename, YAML.dump(self) )
+      puts "Game saved! Load filename at command line."
+      return "S"
     else
       raise "Unknown command; please input E, F, U, or S before coordinates."
     end
@@ -271,13 +277,10 @@ class MineSweeper
 end #Minesweeper
 
 if __FILE__ == $PROGRAM_NAME
-  p "test"
+  case ARGV.count
+  when 0
+    MineSweeper.new.run
+  when 1
+    YAML.load_file(ARGV.shift).run
+  end
 end #FILE
-
-# letsplay = Minesweeper.new
-# letsplay.run
-# gameon = Board.new
-# gameon.display
-
-game = MineSweeper.new
-game.run
