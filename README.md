@@ -1,6 +1,6 @@
 minesweeper.rb
 ===========================
-By:       Frank Kotsianas and Andrew Chen | Updated:  Frank Kotsianas 
+By:       Frank Kotsianas and Andrew Chen     |       Updated:  Frank Kotsianas 
 
 On:       04.07.14
 ---------------------
