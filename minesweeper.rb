@@ -122,11 +122,14 @@ class Board
     # pos_x, pos_y = *position
     curr_tile = self.grid[pos_x][pos_y]
     curr_tile.reveal
+
+    # THIS METHOD IS CALLING ITSELF TOO MUCH WITH REVEAL_NEIGHBORS (L 157)
+    #
+    # ......
     if curr_tile.current_state == "_"
       neighbors = curr_tile.neighbors
       reveal_neighbors( neighbors ) if check_for_chain( neighbors )
     end
-    curr_tile
   end #reveal_tile
 
   def flag_tile(pos_x, pos_y)
@@ -146,13 +149,14 @@ class Board
       if neighbor.has_bomb
         return false
       end
-      true
     end
+    true
   end
 
   def reveal_neighbors( neighbors )
     neighbors.each do |neighbor|
       reveal_tile( *neighbor.position )
+      # neighbor.reveal
     end
   end
 
