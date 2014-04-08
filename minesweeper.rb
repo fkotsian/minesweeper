@@ -1,20 +1,21 @@
 # Andrew Chen, Frank Kotsianas
 # Minesweeper.rb
 
-# encoding: UTF-8
+#!/usr/bin/env ruby
+#encoding: UTF-8
 
 require 'yaml'
 require 'debugger'
 
 class Tile
-  attr_accessor :has_bomb, :revealed, :flagged, :board
+  attr_accessor :bombed, :revealed, :flagged, :board
   attr_reader :position
 
   def initialize(position, brd)
     @position = position
     @board = brd
 
-    @has_bomb = false
+    @bombed = false
     @flagged = false
     @revealed = false
 
@@ -61,18 +62,18 @@ class Tile
   end #neighbors
 
   def neighbor_bomb_count
-    # if self.has_bomb
+    # if self.bombed
     neighbors = self.neighbors
     sum = 0
     neighbors.each do |neighbor|
       # p self.positions
-      sum += 1 if neighbor.has_bomb
+      sum += 1 if neighbor.bombed
     end #each
     sum
   end #neighbor_bomb_count
 
   def current_state
-    if self.revealed == true && self.has_bomb
+    if self.revealed == true && self.bombed
       return "X"
     elsif revealed == true && self.neighbor_bomb_count == 0
       return "_"
@@ -88,7 +89,7 @@ class Tile
   end #current_state
 
   def show_all
-    if self.has_bomb
+    if self.bombed
       "B"
     elsif self.neighbor_bomb_count > 0
       self.neighbor_bomb_count
@@ -126,9 +127,9 @@ class Board
     # THIS METHOD IS CALLING ITSELF TOO MUCH WITH REVEAL_NEIGHBORS (L 157)
     #
     # ......
-    if curr_tile.current_state == "_"
+    if curr_tile.revealed   #current_state == "_" || curr_tile.current_state.is_a?(Integer)
       neighbors = curr_tile.neighbors
-      reveal_neighbors( neighbors ) if check_for_chain( neighbors )
+      reveal_neighbors( neighbors ) if curr_tile.neighbor_bomb_count == 0
     end
   end #reveal_tile
 
@@ -138,20 +139,18 @@ class Board
     curr_tile.flag
   end #flag_tile
 
-  def flag_tile(pos_x, pos_y)
+  def un_flag_tile(pos_x, pos_y)
     # pos_x, pos_y = *position
     curr_tile = self.grid[pos_x][pos_y]
     curr_tile.unflag
   end #un_flag_tile
 
-  def check_for_chain( neighbors )
-    neighbors.each do |neighbor|
-      if neighbor.has_bomb
-        return false
-      end
-    end
-    true
-  end
+  # def check_for_chain( neighbors )
+  #   neighbors.each do |neighbor|
+  #     if neighbor_bomb_count == 0
+  #   end
+  #   true
+  # end
 
   def reveal_neighbors( neighbors )
     neighbors.each do |neighbor|
@@ -176,8 +175,8 @@ class Board
     num_bombs = 0
     until num_bombs == total_bombs
       curr_tile = self.grid.sample.sample
-      unless curr_tile.has_bomb
-        curr_tile.has_bomb = true
+      unless curr_tile.bombed
+        curr_tile.bombed = true
         num_bombs += 1
       end #unless
     end #until
@@ -197,6 +196,9 @@ class MineSweeper
   end
 
   def run
+    # disp move types
+    puts "COMMANDS: Use F to flag, U to unflag, E to explore, and S to save."
+
     # while no win
     bombs_left = 10
 
@@ -205,40 +207,56 @@ class MineSweeper
       # have user pick a tile
       tile_str = user_pick_tile
       p tile_str
-      if tile_str[-1] == "F"
-        pos_x, pos_y = parse_coords( tile_str[0...-1] )
-        curr_tile = self.board.flag_tile( pos_x, pos_y )
-      elsif tile_str[-1] == "U"
-          pos_x, pos_y = parse_coords( tile_str[0...-1] )
-          curr_tile = self.board.un_flag_tile( pos_x, pos_y )
-      else
-        pos_x, pos_y = parse_coords( tile_str[0..-1] )
-        curr_tile = self.board.reveal_tile( pos_x, pos_y )
-      end
+
+      handle_move (tile_str)
 
       # if bomb blow up game over
       if curr_tile.current_state == "X"
         puts "YOU LOSE"
         display_board
-        return false
-      elsif curr_tile.current_state == "F" && curr_tile.has_bomb
+        return
+      elsif curr_tile.current_state == "F" && curr_tile.bombed
         bombs_left -= 1
-      elsif curr_tile.current_state == "U" && curr_tile.has_bomb
+      elsif curr_tile.current_state == "U" && !curr_tile.bombed
         bombs_left -= 1
+      elsif bombs_left == 0
+        puts "You win!!"
+        return
       end
 
     end
     # show win message
   end #run
 
+  def handle_move( move_arr )
+    move_type = move_arr[0]
+    pos_x = move_arr[1].to_i
+    pos_y = move_arr[2].to_i
+
+    if move_type == "F"
+      curr_tile = self.board.flag_tile( pos_x, pos_y )
+    elsif move_type == "U"
+      pos_x, pos_y = parse_coords( tile_str[0...-1] )
+      curr_tile = self.board.un_flag_tile( pos_x, pos_y )
+    elsif move_type == "E"
+      curr_tile = self.board.reveal_tile( pos_x, pos_y )
+    elsif move_type == "S"
+      saved_game = self.to_yaml
+      File.open("minesweeper.yaml", 'w') { saved_game }
+    else
+      raise "Unknown command; please input E, F, U, or S before coordinates."
+    end
+  end
+
+
   def user_pick_tile
     puts "What tile would you like to choose? (Format: x, y [,F for FLAG] )"
     tile_str = gets.chomp.split(",")
   end #pick_tile
 
-  def parse_coords( coords )
-    pos_x, pos_y = coords.map(&:to_i)
-  end
+  # def parse_coords( coords )
+  #   pos_x, pos_y = coords.map(&:to_i)
+  # end
 
 
 end #Minesweeper
