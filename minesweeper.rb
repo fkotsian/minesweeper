@@ -22,13 +22,18 @@ class Tile
 
   def reveal
     self.revealed = true
-    self.current_state
+    self
     # self.current_state = self.underlying_state
   end #reveal
 
   def flag
     self.flagged = true
-    self.current_state
+    self
+  end
+
+  def unflag
+    self.flagged = false
+    self
   end
 
   def neighbors
@@ -119,11 +124,17 @@ class Board
     curr_tile.reveal
   end #reveal_tile
 
-  def flat_tile(pos_x, pos_y)
+  def flag_tile(pos_x, pos_y)
     # pos_x, pos_y = *position
     curr_tile = self.grid[pos_x][pos_y]
     curr_tile.flag
-  end #reveal_tile
+  end #flag_tile
+
+  def flag_tile(pos_x, pos_y)
+    # pos_x, pos_y = *position
+    curr_tile = self.grid[pos_x][pos_y]
+    curr_tile.unflag
+  end #un_flag_tile
 
   def create_tiles
     self.grid.each_with_index do |line, idx1|
@@ -164,25 +175,31 @@ class MineSweeper
     # while no win
     bombs_left = 10
 
-    10.times do
+    until bombs_left.zero? do
       display_board
       # have user pick a tile
       tile_str = user_pick_tile
-      if tile_str.last == "F"
+      p tile_str
+      if tile_str[-1] == "F"
         pos_x, pos_y = parse_coords( tile_str[0...-1] )
         curr_tile = self.board.flag_tile( pos_x, pos_y )
+      elsif tile_str[-1] == "U"
+          pos_x, pos_y = parse_coords( tile_str[0...-1] )
+          curr_tile = self.board.un_flag_tile( pos_x, pos_y )
       else
         pos_x, pos_y = parse_coords( tile_str[0..-1] )
         curr_tile = self.board.reveal_tile( pos_x, pos_y )
       end
 
       # if bomb blow up game over
-      if curr_tile == "X"
+      if curr_tile.current_state == "X"
         puts "YOU LOSE"
         display_board
         return false
-      elsif curr_tile == "F"
-        num_bombs -= 1
+      elsif curr_tile.current_state == "F" && curr_tile.has_bomb
+        bombs_left -= 1
+      elsif curr_tile.current_state == "U" && curr_tile.has_bomb
+        bombs_left -= 1
       end
 
     end
@@ -191,11 +208,11 @@ class MineSweeper
 
   def user_pick_tile
     puts "What tile would you like to choose? (Format: x, y [,F for FLAG] )"
-    tile_str = gets.chomp
+    tile_str = gets.chomp.split(",")
   end #pick_tile
 
   def parse_coords( coords )
-    pos_x, pos_y = coords.split(",").map(&to_i)
+    pos_x, pos_y = coords.map(&:to_i)
   end
 
 
